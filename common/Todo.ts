@@ -3,8 +3,10 @@ export type Todo = {
     for: number,
     by: number,
     name: string,
-    description: string
+    description: string,
+    completed: boolean,
+    teamID: number,
 }
 
-export type TodoCreate = Omit<Todo, 'id'>
+export type TodoCreate = Omit<Todo, 'id' | 'by'>
 export type TodoUpdate = Partial<Todo> & { id: number }
