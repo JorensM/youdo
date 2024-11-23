@@ -2,6 +2,10 @@ import { Todo, TodoCreate, TodoUpdate } from '../../common/Todo';
 import { Team, TeamCreate, TeamUpdate } from '../../common/Team';
 import { User } from '../../common/User'; 
 
+const users: User[] = [];
+const teams: Team[] = [];
+const todos: Todo[] = [];
+
 export abstract class Database {
 
     userID: number
@@ -11,11 +15,13 @@ export abstract class Database {
     }
 
     abstract getTodos(teamID: number): Promise<Todo[]>;
+    abstract getTodo(todoID: number): Promise<Todo>;
     abstract createTodo(todo: TodoCreate): Promise<Todo>;
     abstract updateTodo(todo: TodoUpdate): Promise<Todo>;
     abstract deleteTodo(todoID: number): Promise<Todo>;
 
     abstract getTeams(): Promise<Team[]>;
+    abstract getTeamByUsers(user1ID: number, user2ID: number): Promise<Team>;
     abstract getTeam(teamID: number): Promise<Team>;
     abstract createTeam(team: TeamCreate): Promise<Team>;
     abstract updateTeam(team: TeamUpdate): Promise<Team>;
@@ -28,14 +34,20 @@ export abstract class Database {
 
 export default class PlayDatabase extends Database {
 
-    teams: Team[] = [];
-    todos: Todo[] = [];
-    users: User[] = [];
+    teams: Team[] = teams;
+    todos: Todo[] = todos;
+    users: User[] = users;
 
     maxID = 0;
 
     async getTeams(): Promise<Team[]> {
         return this.teams.filter(team => team.user1 === this.userID || team.user2 === this.userID);
+    }
+    async getTeamByUsers(user1ID: number, user2ID: number): Promise<Team> {
+        return this.teams.find(team => 
+            (team.user1 === user1ID && team.user2 === user2ID) ||
+            (team.user1 === user2ID && team.user2 === user1ID)
+        )
     }
     async getTeam(teamID: number): Promise<Team> {
         return this.teams.find(team => team.id === teamID);
@@ -74,6 +86,9 @@ export default class PlayDatabase extends Database {
     async getTodos(teamID: number): Promise<Todo[]> {
         return this.todos.filter(todo => todo.teamID === teamID);
     }
+    async getTodo(todoID: number): Promise<Todo> {
+        return this.todos.find(todo => todo.id === todoID);
+    }
     async createTodo(todo: TodoCreate): Promise<Todo> {
         const _todo: Todo = {
             ...todo,
@@ -106,7 +121,6 @@ export default class PlayDatabase extends Database {
 
     async getUserByEmail(email: string): Promise<User> {
         const user = this.users.find(user => user.email === email);
-        if(!user) throw new Error('Cannot find user with email ' + email);
         return user;
     }
     async getUser(id: number) {
@@ -123,5 +137,16 @@ export default class PlayDatabase extends Database {
 
         this.users.push(user);
         return user;
+    }
+    async deleteUser(userID: number) {
+        const index = this.users.findIndex(user => user.id === userID);
+        if(index === -1) throw new Error('Cannot find user with ID ' + userID);
+        const filteredTeams = this.teams.filter(team => team.user1 !== userID && team.user2 !== userID);
+        const filteredTodos = this.todos.filter(todo => todo.by !== userID && todo.for !== userID);
+
+        this.todos = filteredTodos;
+        this.teams = filteredTeams;
+
+        this.users.splice(index, 1);
     }
 }

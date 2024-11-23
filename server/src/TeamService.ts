@@ -13,10 +13,17 @@ export default class TeamService {
         return await this.db.getTeams();
     }
     async createTeam(team: TeamCreate) {
-        return await this.db.createTeam(team);
-    }
-    async updateTeam(team: TeamUpdate) {
-        return await this.db.updateTeam(team);
+
+        const _team = await this.db.getTeamByUsers(this.db.userID, team.user2);
+        if(!team) {
+            return await this.db.createTeam(team);
+        } else {
+            return await this.db.updateTeam({
+                ..._team,
+                accepted: true
+            })
+        }
+
     }
     async deleteTeam(teamID: number) {
         return await this.db.deleteTeam(teamID);
