@@ -187,12 +187,16 @@ app.post('/api/teams', async (req: MyRequest, res) => {
     const db = new DB(req.session.userID);
     const teamService = new TeamService(db);
 
-    const { partnerID } = req.body;
+    const { user2 }: { user2: string } = req.body;
 
-    validateProperties({partnerID}, res);
+    try {
+        validateProperties({user2}, res);
+    } catch (missingPropertyNames) {
+        res.status(400).send(missingPropertyNames.join(', '));
+    }
 
     const team = await teamService.createTeam({
-        user2: partnerID
+        user2
     })
 
     res.json(team);
